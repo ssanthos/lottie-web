@@ -141,6 +141,7 @@ TextProperty.prototype.completeTextData = function(documentData) {
             case 'regular':
             case 'normal':
             fWeight = '400';
+			break;
             case 'light':
             case 'thin':
             fWeight = '200';
