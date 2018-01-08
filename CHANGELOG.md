@@ -1,3 +1,26 @@
+## V 5.1.2
+- FIX: Expressions switch statements adding variable declaration when missing
+
+## V 5.1.1
+- Text Layer keyframed fix
+
+## V 5.1.0
+- FEATURE: support for all text document property updates usign TextLayer.updateDocumentData (check Wiki for more information)
+- FEATURE: text layers with text boxes have two new methods: TextLayer.canResizeFont and TextLayer.setMinimumFontSize (check Wiki for more information)
+- PERFORMANCE: Significant performance improvement on all renderers
+- PERFORMANCE: repeaters significant performance improvement
+- PERFORMANCE: gradients with opacity significant performance improvement
+- REFACTOR: reduced and organized main element classes
+- TEXT: text align fix for font based text layers
+
+## V 5.0.6
+- FIX: totalFrames and resetFrames
+- FIX: canvas destroy method
+- FIX: expressions rect size support
+- FIX: multiple requestAnimationFrame fix
+- FIX: variable not being declared
+- FEATURE: support for custom viewBox
+
 ## V 5.0.5
 - FIX: totalFrames now ends at previous frame to respect AE's last frame
 - FIX: duplicate requestAnimationFrame call

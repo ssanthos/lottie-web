@@ -1,5 +1,5 @@
 function EffectsManager(data,element,dynamicProperties){
-    var effects = data.ef;
+    var effects = data.ef || [];
     this.effectElements = [];
     var i,len = effects.length;
     var effectItem;
@@ -18,60 +18,55 @@ function GroupEffect(data,element,dynamicProperties){
 }
 
 GroupEffect.prototype.getValue = function(){
-    this.mdf = false;
+    this._mdf = false;
     var i, len = this.dynamicProperties.length;
     for(i=0;i<len;i+=1){
         this.dynamicProperties[i].getValue();
-        this.mdf = this.dynamicProperties[i].mdf ? true : this.mdf;
+        this._mdf = this.dynamicProperties[i]._mdf || this._mdf;
     }
 };
 
 GroupEffect.prototype.init = function(data,element,dynamicProperties){
     this.data = data;
-    this.mdf = false;
+    this._mdf = false;
     this.effectElements = [];
     var i, len = this.data.ef.length;
     var eff, effects = this.data.ef;
     for(i=0;i<len;i+=1){
+        eff = null;
         switch(effects[i].ty){
             case 0:
                 eff = new SliderEffect(effects[i],element,dynamicProperties);
-                this.effectElements.push(eff);
                 break;
             case 1:
                 eff = new AngleEffect(effects[i],element,dynamicProperties);
-                this.effectElements.push(eff);
                 break;
             case 2:
                 eff = new ColorEffect(effects[i],element,dynamicProperties);
-                this.effectElements.push(eff);
                 break;
             case 3:
                 eff = new PointEffect(effects[i],element,dynamicProperties);
-                this.effectElements.push(eff);
                 break;
             case 4:
             case 7:
                 eff = new CheckboxEffect(effects[i],element,dynamicProperties);
-                this.effectElements.push(eff);
                 break;
             case 10:
                 eff = new LayerIndexEffect(effects[i],element,dynamicProperties);
-                this.effectElements.push(eff);
                 break;
             case 11:
                 eff = new MaskIndexEffect(effects[i],element,dynamicProperties);
-                this.effectElements.push(eff);
                 break;
             case 5:
                 eff = new EffectsManager(effects[i],element,dynamicProperties);
-                this.effectElements.push(eff);
                 break;
-            case 6:
+            //case 6:
             default:
                 eff = new NoValueEffect(effects[i],element,dynamicProperties);
-                this.effectElements.push(eff);
                 break;
+        }
+        if(eff) {
+            this.effectElements.push(eff);
         }
     }
 };

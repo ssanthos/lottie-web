@@ -1,21 +1,31 @@
-function ITextElement(data, animationItem,parentContainer,globalData){
+function ITextElement(){
 }
-ITextElement.prototype.init = function(){
+
+ITextElement.prototype.initElement = function(data,globalData,comp){
     this.lettersChangedFlag = true;
-    this.dynamicProperties = this.dynamicProperties || [];
-    this.textAnimator = new TextAnimatorProperty(this.data.t, this.renderType, this);
-    this.textProperty = new TextProperty(this, this.data.t, this.dynamicProperties);
-    this._parent.init.call(this);
+    this.initFrame();
+    this.initBaseData(data, globalData, comp);
+    this.textAnimator = new TextAnimatorProperty(data.t, this.renderType, this);
+    this.textProperty = new TextProperty(this, data.t, this.dynamicProperties);
+    this.initTransform(data, globalData, comp);
+    this.initHierarchy();
+    this.initRenderable();
+    this.initRendererElement();
+    this.createContainerElements();
+    this.addMasks();
+    this.createContent();
     this.textAnimator.searchProperties(this.dynamicProperties);
 };
 
 ITextElement.prototype.prepareFrame = function(num) {
-    this._parent.prepareFrame.call(this, num);
-    if(this.textProperty.mdf || this.textProperty.firstFrame) {
+    this._mdf = false;
+    this.prepareRenderableFrame(num);
+    this.prepareProperties(num, this.isInRange);
+    if(this.textProperty._mdf || this.textProperty._isFirstFrame) {
         this.buildNewText();
-        this.textProperty.firstFrame = false;
+        this.textProperty._isFirstFrame = false;
     }
-}
+};
 
 ITextElement.prototype.createPathShape = function(matrixHelper, shapes) {
     var j,jLen = shapes.length;
@@ -30,7 +40,21 @@ ITextElement.prototype.createPathShape = function(matrixHelper, shapes) {
 
 ITextElement.prototype.updateDocumentData = function(newData, index) {
     this.textProperty.updateDocumentData(newData, index);
-}
+    this.buildNewText();
+    this.renderInnerContent();
+};
+
+ITextElement.prototype.canResizeFont = function(_canResize) {
+    this.textProperty.canResizeFont(_canResize);
+    this.buildNewText();
+    this.renderInnerContent();
+};
+
+ITextElement.prototype.setMinimumFontSize = function(_fontSize) {
+    this.textProperty.setMinimumFontSize(_fontSize);
+    this.buildNewText();
+    this.renderInnerContent();
+};
 
 ITextElement.prototype.applyTextPropertiesToMatrix = function(documentData, matrixHelper, lineNumber, xPos, yPos) {
     if(documentData.ps){
@@ -46,16 +70,16 @@ ITextElement.prototype.applyTextPropertiesToMatrix = function(documentData, matr
             break;
     }
     matrixHelper.translate(xPos, yPos, 0);
-}
+};
 
 ITextElement.prototype.buildColor = function(colorData) {
     return 'rgb(' + Math.round(colorData[0]*255) + ',' + Math.round(colorData[1]*255) + ',' + Math.round(colorData[2]*255) + ')';
-}
+};
 
 ITextElement.prototype.buildShapeString = IShapeElement.prototype.buildShapeString;
 
 ITextElement.prototype.emptyProp = new LetterProps();
 
 ITextElement.prototype.destroy = function(){
-    this._parent.destroy.call(this._parent);
+    
 };

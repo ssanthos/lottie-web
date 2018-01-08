@@ -1,4 +1,4 @@
-(function addTextPropertyDecorator() {
+(function addDecorator() {
 
     function searchExpressions(){
         if(this.data.d.x){
@@ -16,15 +16,15 @@
     TextProperty.prototype.searchProperty = function(){
         this.kf = this.searchExpressions() || this.data.d.k.length > 1;
         return this.kf;
-    }
+    };
 
     TextProperty.prototype.getExpressionValue = function(num){
         this.calculateExpression();
-        if(this.mdf) {
+        if(this._mdf) {
             this.currentData.t = this.v.toString();
             this.completeTextData(this.currentData);
         }
-    }
+    };
 
     TextProperty.prototype.searchExpressions = searchExpressions;
     

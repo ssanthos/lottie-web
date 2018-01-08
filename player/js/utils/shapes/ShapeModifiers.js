@@ -22,24 +22,39 @@ ShapeModifier.prototype.initModifierProperties = function(){};
 ShapeModifier.prototype.addShapeToModifier = function(){};
 ShapeModifier.prototype.addShape = function(data){
     if(!this.closed){
-        this.shapes.push({shape:data.sh, data: data, localShapeCollection:shapeCollection_pool.newShapeCollection()});
-        this.addShapeToModifier(data.sh);
+        var shapeData = {shape:data.sh, data: data, localShapeCollection:shapeCollection_pool.newShapeCollection()};
+        this.shapes.push(shapeData);
+        this.addShapeToModifier(shapeData);
     }
-}
+};
 ShapeModifier.prototype.init = function(elem,data,dynamicProperties){
-    this.elem = elem;
-    this.frameId = -1;
-    this.shapes = [];
     this.dynamicProperties = [];
-    this.mdf = false;
+    this.shapes = [];
+    this.elem = elem;
+    this.initModifierProperties(elem,data);
+    this.frameId = initialDefaultFrame;
+    this._mdf = false;
     this.closed = false;
     this.k = false;
-    this.comp = elem.comp;
-    this.initModifierProperties(elem,data);
     if(this.dynamicProperties.length){
         this.k = true;
         dynamicProperties.push(this);
     }else{
         this.getValue(true);
     }
-}
+};
+ShapeModifier.prototype.processKeys = function(){
+    if(this.elem.globalData.frameId === this.frameId){
+        return;
+    }
+    this._mdf = false;
+    var i, len = this.dynamicProperties.length;
+
+    for(i=0;i<len;i+=1){
+        this.dynamicProperties[i].getValue();
+        if(this.dynamicProperties[i]._mdf){
+            this._mdf = true;
+        }
+    }
+    this.frameId = this.elem.globalData.frameId;
+};

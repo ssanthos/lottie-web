@@ -1,5 +1,6 @@
-function HCameraElement(data,parentContainer,globalData,comp, placeholder){
-    this._parent.constructor.call(this,data,parentContainer,globalData,comp, placeholder);
+function HCameraElement(data,globalData,comp){
+    this.initFrame();
+    this.initBaseData(data,globalData,comp);
     var getProp = PropertyFactory.getProp;
     this.pe = getProp(this,data.pe,0,0,this.dynamicProperties);
     if(data.ks.p.s){
@@ -25,8 +26,10 @@ function HCameraElement(data,parentContainer,globalData,comp, placeholder){
     this.ry = getProp(this,data.ks.ry,0,degToRads,this.dynamicProperties);
     this.rz = getProp(this,data.ks.rz,0,degToRads,this.dynamicProperties);
     this.mat = new Matrix();
+    this._prevMat = new Matrix();
+    this._isFirstFrame = true;
 }
-createElement(HBaseElement, HCameraElement);
+extendPrototype([BaseElement, FrameElement], HCameraElement);
 
 HCameraElement.prototype.setup = function() {
     var i, len = this.comp.threeDElements.length, comp;
@@ -46,15 +49,15 @@ HCameraElement.prototype.hide = function(){
 };
 
 HCameraElement.prototype.renderFrame = function(){
-    var mdf = this.firstFrame;
+    var _mdf = this._isFirstFrame;
     var i, len;
     if(this.hierarchy){
         len = this.hierarchy.length;
         for(i=0;i<len;i+=1){
-            mdf = this.hierarchy[i].finalTransform.mProp.mdf ? true : mdf;
+            _mdf = this.hierarchy[i].finalTransform.mProp._mdf || _mdf;
         }
     }
-    if(mdf || (this.p && this.p.mdf) || (this.px && (this.px.mdf || this.py.mdf || this.pz.mdf)) || this.rx.mdf || this.ry.mdf || this.rz.mdf || this.or.mdf || (this.a && this.a.mdf)) {
+    if(_mdf || (this.p && this.p._mdf) || (this.px && (this.px._mdf || this.py._mdf || this.pz._mdf)) || this.rx._mdf || this.ry._mdf || this.rz._mdf || this.or._mdf || (this.a && this.a._mdf)) {
         this.mat.reset();
 
         if(this.p){
@@ -85,15 +88,24 @@ HCameraElement.prototype.renderFrame = function(){
                 this.mat.transform(mat[0],mat[1],mat[2],mat[3],mat[4],mat[5],mat[6],mat[7],mat[8],mat[9],mat[10],mat[11],-mat[12],-mat[13],mat[14],mat[15]);
             }
         }
-        len = this.comp.threeDElements.length;
-        var comp;
-        for(i=0;i<len;i+=1){
-            comp = this.comp.threeDElements[i];
-            comp.container.style.transform = comp.container.style.webkitTransform = this.mat.toCSS();
+        if(!this._prevMat.equals(this.mat)) {
+            len = this.comp.threeDElements.length;
+            var comp;
+            for(i=0;i<len;i+=1){
+                comp = this.comp.threeDElements[i];
+                comp.container.style.transform = comp.container.style.webkitTransform = this.mat.toCSS();
+            }
+            this.mat.clone(this._prevMat);
         }
     }
-    this.firstFrame = false;
+    this._isFirstFrame = false;
+};
+
+HCameraElement.prototype.prepareFrame = function(num) {
+    this.prepareProperties(num, true);
 };
 
 HCameraElement.prototype.destroy = function(){
 };
+HCameraElement.prototype.initExpressions = function(){};
+HCameraElement.prototype.getBaseElement = function(){return null;};

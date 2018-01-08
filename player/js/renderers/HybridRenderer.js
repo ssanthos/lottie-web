@@ -2,11 +2,14 @@ function HybridRenderer(animationItem, config){
     this.animationItem = animationItem;
     this.layers = null;
     this.renderedFrame = -1;
-    this.globalData = {
-        frameNum: -1
-    };
     this.renderConfig = {
-        className: (config && config.className) || ''
+        className: (config && config.className) || '',
+        hideOnTransparent: (config && config.hideOnTransparent === false) ? false : true
+    };
+    this.globalData = {
+        _mdf: false,
+        frameNum: -1,
+        renderConfig: this.renderConfig
     };
     this.pendingElements = [];
     this.elements = [];
@@ -17,7 +20,7 @@ function HybridRenderer(animationItem, config){
 
 }
 
-extendPrototype(BaseRenderer,HybridRenderer);
+extendPrototype([BaseRenderer],HybridRenderer);
 
 HybridRenderer.prototype.buildItem = SVGRenderer.prototype.buildItem;
 
@@ -36,11 +39,12 @@ HybridRenderer.prototype.appendElementInPos = function(element, pos){
     var layer = this.layers[pos];
     if(!layer.ddd || !this.supports3d){
         var i = 0;
-        var nextDOMElement, nextLayer;
+        var nextDOMElement, nextLayer, tmpDOMElement;
         while(i<pos){
             if(this.elements[i] && this.elements[i]!== true && this.elements[i].getBaseElement){
                 nextLayer = this.elements[i];
-                nextDOMElement = this.layers[i].ddd ? this.getThreeDContainerByPos(i) : nextLayer.getBaseElement();
+                tmpDOMElement = this.layers[i].ddd ? this.getThreeDContainerByPos(i) : nextLayer.getBaseElement();
+                nextDOMElement = tmpDOMElement || nextDOMElement;
             }
             i += 1;
         }
@@ -58,51 +62,48 @@ HybridRenderer.prototype.appendElementInPos = function(element, pos){
     }
 };
 
-
-HybridRenderer.prototype.createBase = function (data) {
-    return new SVGBaseElement(data, this.layerElement,this.globalData,this);
-};
-
 HybridRenderer.prototype.createShape = function (data) {
     if(!this.supports3d){
-        return new IShapeElement(data, this.layerElement,this.globalData,this);
+        return new SVGShapeElement(data, this.globalData, this);
     }
-    return new HShapeElement(data, this.layerElement,this.globalData,this);
+    return new HShapeElement(data, this.globalData, this);
 };
 
 HybridRenderer.prototype.createText = function (data) {
     if(!this.supports3d){
-        return new SVGTextElement(data, this.layerElement,this.globalData,this);
+        return new SVGTextElement(data, this.globalData, this);
     }
-    return new HTextElement(data, this.layerElement,this.globalData,this);
+    return new HTextElement(data, this.globalData, this);
 };
 
 HybridRenderer.prototype.createCamera = function (data) {
-    this.camera = new HCameraElement(data, this.layerElement,this.globalData,this);
+    this.camera = new HCameraElement(data, this.globalData, this);
     return this.camera;
 };
 
 HybridRenderer.prototype.createImage = function (data) {
     if(!this.supports3d){
-        return new IImageElement(data, this.layerElement,this.globalData,this);
+        return new IImageElement(data, this.globalData, this);
     }
-    return new HImageElement(data, this.layerElement,this.globalData,this);
+    return new HImageElement(data, this.globalData, this);
 };
 
 HybridRenderer.prototype.createComp = function (data) {
     if(!this.supports3d){
-        return new ICompElement(data, this.layerElement,this.globalData,this);
+        return new ICompElement(data, this.globalData, this);
     }
-    return new HCompElement(data, this.layerElement,this.globalData,this);
+    return new HCompElement(data, this.globalData, this);
 
 };
 
 HybridRenderer.prototype.createSolid = function (data) {
     if(!this.supports3d){
-        return new ISolidElement(data, this.layerElement,this.globalData,this);
+        return new ISolidElement(data, this.globalData, this);
     }
-    return new HSolidElement(data, this.layerElement,this.globalData,this);
+    return new HSolidElement(data, this.globalData, this);
 };
+
+HybridRenderer.prototype.createNull = SVGRenderer.prototype.createNull;
 
 HybridRenderer.prototype.getThreeDContainerByPos = function(pos){
     var i = 0, len = this.threeDElements.length;
@@ -112,15 +113,15 @@ HybridRenderer.prototype.getThreeDContainerByPos = function(pos){
         }
         i += 1;
     }
-}
+};
 
 HybridRenderer.prototype.createThreeDContainer = function(pos){
-    var perspectiveElem = document.createElement('div');
+    var perspectiveElem = createTag('div');
     styleDiv(perspectiveElem);
     perspectiveElem.style.width = this.globalData.compSize.w+'px';
     perspectiveElem.style.height = this.globalData.compSize.h+'px';
     perspectiveElem.style.transformOrigin = perspectiveElem.style.mozTransformOrigin = perspectiveElem.style.webkitTransformOrigin = "50% 50%";
-    var container = document.createElement('div');
+    var container = createTag('div');
     styleDiv(container);
     container.style.transform = container.style.webkitTransform = 'matrix3d(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)';
     perspectiveElem.appendChild(container);
@@ -174,7 +175,7 @@ HybridRenderer.prototype.addTo3dContainer = function(elem,pos){
 };
 
 HybridRenderer.prototype.configAnimation = function(animData){
-    var resizerElem = document.createElement('div');
+    var resizerElem = createTag('div');
     var wrapper = this.animationItem.wrapper;
     resizerElem.style.width = animData.w+'px';
     resizerElem.style.height = animData.h+'px';
@@ -274,7 +275,7 @@ HybridRenderer.prototype.initItems = function(){
 
 HybridRenderer.prototype.searchExtraCompositions = function(assets){
     var i, len = assets.length;
-    var floatingContainer = document.createElement('div');
+    var floatingContainer = createTag('div');
     for(i=0;i<len;i+=1){
         if(assets[i].xt){
             var comp = this.createComp(assets[i],floatingContainer,this.globalData.comp,null);

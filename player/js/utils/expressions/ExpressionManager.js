@@ -1,21 +1,22 @@
 var ExpressionManager = (function(){
+    'use strict';
     var ob = {};
     var Math = BMMath;
     var window = null;
     var document = null;
 
-    function duplicatePropertyValue(value, mult){
+    function duplicatePropertyValue(value, mult) {
         mult = mult || 1;
 
-        if(typeof value === 'number'  || value instanceof Number){
-            return value*mult;
-        }else if(value.i){
-            return JSON.parse(JSON.stringify(value));
-        }else{
-            var arr = createTypedArray('int16', value.length);
+        if (typeof value === 'number'  || value instanceof Number) {
+            return value * mult;
+        } else if(value.i) {
+            return shape_pool.clone(value);
+        } else {
+            var arr = createTypedArray('float32', value.length);
             var i, len = value.length;
-            for(i=0;i<len;i+=1){
-                arr[i]=value[i]*mult;
+            for (i = 0; i < len; i += 1) {
+                arr[i] = value[i] * mult;
             }
             return arr;
         }
@@ -31,9 +32,7 @@ var ExpressionManager = (function(){
         }
         var i, len = shape1._length;
         for(i = 0; i < len; i += 1) {
-            if(shape1.v[i][0] !== shape2.v[i][0] || shape1.v[i][1] !== shape2.v[i][1]
-                || shape1.o[i][0] !== shape2.o[i][0] || shape1.o[i][1] !== shape2.o[i][1]
-                || shape1.i[i][0] !== shape2.i[i][0] || shape1.i[i][1] !== shape2.i[i][1]){
+            if(shape1.v[i][0] !== shape2.v[i][0] || shape1.v[i][1] !== shape2.v[i][1] || shape1.o[i][0] !== shape2.o[i][0] || shape1.o[i][1] !== shape2.o[i][1] || shape1.i[i][0] !== shape2.i[i][0] || shape1.i[i][1] !== shape2.i[i][1]){
                 return false;
             }
         }
@@ -80,7 +79,7 @@ var ExpressionManager = (function(){
                 if((typeof a[i] === 'number' || a[i] instanceof Number) && (typeof b[i] === 'number' || b[i] instanceof Number)){
                     retArr[i] = a[i] + b[i];
                 }else{
-                    retArr[i] = b[i] == undefined ? a[i] : a[i] || b[i];
+                    retArr[i] = b[i] === undefined ? a[i] : a[i] || b[i];
                 }
                 i += 1;
             }
@@ -117,7 +116,7 @@ var ExpressionManager = (function(){
                 if((typeof a[i] === 'number' || a[i] instanceof Number) && typeof (typeof b[i] === 'number' || b[i] instanceof Number)){
                     retArr[i] = a[i] - b[i];
                 }else{
-                    retArr[i] = b[i] == undefined ? a[i] : a[i] || b[i];
+                    retArr[i] = b[i] === undefined ? a[i] : a[i] || b[i];
                 }
                 i += 1;
             }
@@ -211,27 +210,27 @@ var ExpressionManager = (function(){
 
     var helperLengthArray = [0,0,0,0,0,0];
 
-    function length(arr1,arr2){
-        if(typeof arr1 === 'number' || arr1 instanceof Number){
+    function length(arr1, arr2) {
+        if (typeof arr1 === 'number' || arr1 instanceof Number) {
             arr2 = arr2 || 0;
             return Math.abs(arr1 - arr2);
         }
-        if(!arr2){
+        if(!arr2) {
             arr2 = helperLengthArray;
         }
-        var i,len = Math.min(arr1.length,arr2.length);
+        var i, len = Math.min(arr1.length, arr2.length);
         var addedLength = 0;
-        for(i=0;i<len;i+=1){
-            addedLength += Math.pow(arr2[i]-arr1[i],2);
+        for (i = 0; i < len; i += 1) {
+            addedLength += Math.pow(arr2[i] - arr1[i], 2);
         }
         return Math.sqrt(addedLength);
     }
 
-    function normalize(vec){
+    function normalize(vec) {
         return div(vec, length(vec));
     }
 
-    function rgbToHsl(val){
+    function rgbToHsl(val) {
         var r = val[0]; var g = val[1]; var b = val[2];
         var max = Math.max(r, g, b), min = Math.min(r, g, b);
         var h, s, l = (max + min) / 2;
@@ -251,6 +250,16 @@ var ExpressionManager = (function(){
 
         return [h, s, l,val[3]];
     }
+
+    function hue2rgb(p, q, t){
+        if(t < 0) t += 1;
+        if(t > 1) t -= 1;
+        if(t < 1/6) return p + (q - p) * 6 * t;
+        if(t < 1/2) return q;
+        if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
+    }
+
     function hslToRgb(val){
         var h = val[0];
         var s = val[1];
@@ -258,17 +267,9 @@ var ExpressionManager = (function(){
 
         var r, g, b;
 
-        if(s == 0){
+        if(s === 0){
             r = g = b = l; // achromatic
         }else{
-            function hue2rgb(p, q, t){
-                if(t < 0) t += 1;
-                if(t > 1) t -= 1;
-                if(t < 1/6) return p + (q - p) * 6 * t;
-                if(t < 1/2) return q;
-                if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-                return p;
-            }
 
             var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
             var p = 2 * l - q;
@@ -318,7 +319,7 @@ var ExpressionManager = (function(){
             var arr = createTypedArray('float32', len);
             var rnd = BMMath.random();
             for(i=0;i<len;i+=1){
-                arr[i] = min[i] + rnd*(max[i]-min[i])
+                arr[i] = min[i] + rnd*(max[i]-min[i]);
             }
             return arr;
         }
@@ -332,13 +333,13 @@ var ExpressionManager = (function(){
     function createPath(points, inTangents, outTangents, closed) {
         inTangents = inTangents && inTangents.length ? inTangents : points;
         outTangents = outTangents && outTangents.length ? outTangents : points;
-        var path = shape_pool.newShape();
-        var len = points.length;
+        var path = shape_pool.newElement();
+        var i, len = points.length;
         path.setPathData(closed, len);
         for(i = 0; i < len; i += 1) {
-            path.setTripleAt(points[i][0],points[i][1],outTangents[i][0] + points[i][0],outTangents[i][1] + points[i][1],inTangents[i][0] + points[i][0],inTangents[i][1] + points[i][1],i,true)
+            path.setTripleAt(points[i][0],points[i][1],outTangents[i][0] + points[i][0],outTangents[i][1] + points[i][1],inTangents[i][0] + points[i][0],inTangents[i][1] + points[i][1],i,true);
         }
-        return path
+        return path;
     }
 
     function initiateExpression(elem,data,property){
@@ -347,7 +348,6 @@ var ExpressionManager = (function(){
         var _needsRandom = val.indexOf('random') !== -1;
         var elemType = elem.data.ty;
         var transform,content,effect;
-        var thisComp = elem.comp;
         var thisProperty = property;
         elem.comp.frameDuration = 1/elem.comp.globalData.frameRate;
         var inPoint = elem.data.ip/elem.comp.globalData.frameRate;
@@ -356,12 +356,9 @@ var ExpressionManager = (function(){
         var height = elem.data.sh ? elem.data.sh : 0;
         var loopIn, loop_in, loopOut, loop_out;
         var toWorld,fromWorld,fromComp,fromCompToSurface,anchorPoint,thisLayer,thisComp,mask,valueAtTime,velocityAtTime;
-        var fn = new Function();
-        //var fnStr = 'var fn = function(){'+val+';this.v = $bm_rt;}';
-        //eval(fnStr);
 
-        var fn = eval('[function(){' + val+';if($bm_rt.__shapeObject){this.v=shape_pool.clone($bm_rt.v);}else{this.v=$bm_rt;}}' + ']')[0];
-        var bindedFn = fn.bind(this);
+        var scoped_bm_rt;
+        var expression_function = eval('[function _expression_function(){' + val+';scoped_bm_rt=$bm_rt}' + ']')[0];
         var numKeys = property.kf ? data.k.length : 0;
 
         var wiggle = function wiggle(freq,amp){
@@ -405,13 +402,13 @@ var ExpressionManager = (function(){
             loop_out = loopOut;
         }
 
-        var loopInDuration = function loopInDuration(type,duration){
+        function loopInDuration(type,duration){
             return loopIn(type,duration,true);
-        }.bind(this);
+        }
 
-        var loopOutDuration = function loopOutDuration(type,duration){
+        function loopOutDuration(type,duration){
             return loopOut(type,duration,true);
-        }.bind(this);
+        }
 
         if(this.getValueAtTime) {
             valueAtTime = this.getValueAtTime.bind(this);
@@ -428,7 +425,7 @@ var ExpressionManager = (function(){
             var pitch = Math.atan2(fVec[0],Math.sqrt(fVec[1]*fVec[1]+fVec[2]*fVec[2]))/degToRads;
             var yaw = -Math.atan2(fVec[1],fVec[2])/degToRads;
             return [yaw,pitch,0];
-        };
+        }
 
         function easeOut(t, tMin, tMax, val1, val2){
             if(val1 === undefined){
@@ -438,7 +435,7 @@ var ExpressionManager = (function(){
                 t = (t - tMin) / (tMax - tMin);
             }
             return -(val2-val1) * t*(t-2) + val1;
-        };
+        }
 
         function easeIn(t, tMin, tMax, val1, val2){
             if(val1 === undefined){
@@ -448,7 +445,7 @@ var ExpressionManager = (function(){
                 t = (t - tMin) / (tMax - tMin);
             }
             return (val2-val1)*t*t + val1;
-        };
+        }
 
         function nearestKey(time){
             var i, len = data.k.length,index,keyTime;
@@ -489,7 +486,7 @@ var ExpressionManager = (function(){
             ob.index = index;
             ob.time = keyTime/elem.comp.globalData.frameRate;
             return ob;
-        };
+        }
 
         function key(ind){
             var ob, i, len;
@@ -511,92 +508,98 @@ var ExpressionManager = (function(){
                 ob[i] = arr[i];
             }
             return ob;
-        };
+        }
 
-        function framesToTime(frames,fps){
-            if(!fps){
+        function framesToTime(frames, fps) { 
+            if (!fps) {
                 fps = elem.comp.globalData.frameRate;
             }
-            return frames/fps;
-        };
+            return frames / fps;
+        }
 
-        function timeToFrames(t,fps){
-            if(!t && t !== 0){
+        function timeToFrames(t, fps) {
+            if (!t && t !== 0) {
                 t = time;
             }
-            if(!fps){
+            if (!fps) {
                 fps = elem.comp.globalData.frameRate;
             }
-            return t*fps;
-        };
+            return t * fps;
+        }
 
         function seedRandom(seed){
             BMMath.seedrandom(randSeed + seed);
-        };
+        }
 
         function sourceRectAtTime() {
             return elem.sourceRectAtTime();
         }
 
-        var time,velocity, value,textIndex,textTotal,selectorValue;
+        var time, velocity, value, textIndex, textTotal, selectorValue;
         var index = elem.data.ind;
         var hasParent = !!(elem.hierarchy && elem.hierarchy.length);
         var parent;
         var randSeed = Math.floor(Math.random()*1000000);
-        function executeExpression(){
-            if(_needsRandom){
+        function executeExpression() {
+            if (_needsRandom) {
                 seedRandom(randSeed);
             }
-            if(this.frameExpressionId === elem.globalData.frameId && this.type !== 'textSelector'){
+            if (this.frameExpressionId === elem.globalData.frameId && this.propType !== 'textSelector') {
                 return;
             }
             if(this.lock){
                 this.v = duplicatePropertyValue(this.pv,this.mult);
                 return true;
             }
-            if(this.type === 'textSelector'){
+            if(this.propType === 'textSelector'){
                 textIndex = this.textIndex;
                 textTotal = this.textTotal;
                 selectorValue = this.selectorValue;
             }
-            if(!thisLayer){
+            if (!thisLayer) {
                 thisLayer = elem.layerInterface;
                 thisComp = elem.comp.compInterface;
                 toWorld = thisLayer.toWorld.bind(thisLayer);
                 fromWorld = thisLayer.fromWorld.bind(thisLayer);
                 fromComp = thisLayer.fromComp.bind(thisLayer);
-                mask = thisLayer.mask ? thisLayer.mask.bind(thisLayer):null;
+                mask = thisLayer.mask ? thisLayer.mask.bind(thisLayer) : null;
                 fromCompToSurface = fromComp;
             }
-            if(!transform){
+            if (!transform) {
                 transform = elem.layerInterface("ADBE Transform Group");
                 anchorPoint = transform.anchorPoint;
             }
             
-            if(elemType === 4 && !content){
+            if (elemType === 4 && !content) {
                 content = thisLayer("ADBE Root Vectors Group");
             }
-            if(!effect){
+            if (!effect) {
                 effect = thisLayer(4);
             }
             hasParent = !!(elem.hierarchy && elem.hierarchy.length);
-            if(hasParent && !parent){
+            if (hasParent && !parent) {
                 parent = elem.hierarchy[0].layerInterface;
             }
             this.lock = true;
-            if(this.getPreValue){
+            if (this.getPreValue) {
                 this.getPreValue();
             }
             value = this.pv;
             time = this.comp.renderedFrame/this.comp.globalData.frameRate;
-            if(needsVelocity){
+            if (needsVelocity) {
                 velocity = velocityAtTime(time);
             }
-            bindedFn();
+            expression_function();
+            if (scoped_bm_rt.propType === "shape") {
+                this.v = shape_pool.clone(scoped_bm_rt.v);
+            } else {
+                this.v = scoped_bm_rt;
+            }
+
             this.frameExpressionId = elem.globalData.frameId;
             var i,len;
             if(this.mult){
-                if(typeof this.v === 'number' || this.v instanceof Number || this.v instanceof String || typeof this.v === 'string'){
+                if(this.propType === 'unidimensional'){
                     this.v *= this.mult;
                 }else if(this.v.length === 1){
                     this.v = this.v[0] * this.mult;
@@ -610,33 +613,33 @@ var ExpressionManager = (function(){
                     }
                 }
             }
-            if(this.v.length === 1){
+            if (this.v.length === 1) {
                 this.v = this.v[0];
             }
-            if(typeof this.v === 'number' || this.v instanceof Number || this.v instanceof String || typeof this.v === 'string'){
+            if (this.propType === 'unidimensional') {
                 if(this.lastValue !== this.v){
                     this.lastValue = this.v;
-                    this.mdf = true;
+                    this._mdf = true;
                 }
-            }else if( this.v._length){
-                if(!shapesEqual(this.v,this.localShapeCollection.shapes[0])){
-                    this.mdf = true;
+            } else if (this.propType === 'shape') {
+                if (!shapesEqual(this.v, this.localShapeCollection.shapes[0])) {
+                    this._mdf = true;
                     this.localShapeCollection.releaseShapes();
                     this.localShapeCollection.addShape(shape_pool.clone(this.v));
                 }
-            }else{
+            } else {
                 len = this.v.length;
-                for(i = 0; i < len; i += 1){
-                    if(this.v[i] !== this.lastValue[i]){
+                for (i = 0; i < len; i += 1) {
+                    if (this.v[i] !== this.lastValue[i]) {
                         this.lastValue[i] = this.v[i];
-                        this.mdf = true;
+                        this._mdf = true;
                     }
                 }
             }
             this.lock = false;
         }
         return executeExpression;
-    };
+    }
 
     ob.initiateExpression = initiateExpression;
     return ob;

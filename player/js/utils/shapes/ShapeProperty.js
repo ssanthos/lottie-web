@@ -2,8 +2,9 @@ var ShapePropertyFactory = (function(){
 
     var initFrame = -999999;
 
-    function interpolateShape(frameNum, iterationIndex, previousValue, isCurrentRender) {
-        var keyPropS,keyPropE,isHold;
+    function interpolateShape(frameNum, previousValue, isCurrentRender, caching) {
+        var iterationIndex = caching.lastIndex;
+        var keyPropS,keyPropE,isHold, j, k, jLen, kLen, perc, vertexValue, hasModified = false;
         if(frameNum < this.keyframes[0].t-this.offsetTime){
             keyPropS = this.keyframes[0].s[0];
             isHold = true;
@@ -17,7 +18,7 @@ var ShapePropertyFactory = (function(){
             isHold = true;
         }else{
             var i = iterationIndex;
-            var len = this.keyframes.length- 1,flag = true,keyData,nextKeyData, j, jLen, k, kLen;
+            var len = this.keyframes.length- 1,flag = true,keyData,nextKeyData;
             while(flag){
                 keyData = this.keyframes[i];
                 nextKeyData = this.keyframes[i+1];
@@ -32,8 +33,6 @@ var ShapePropertyFactory = (function(){
             }
             isHold = keyData.h === 1;
             iterationIndex = i;
-
-            var perc;
             if(!isHold){
                 if(frameNum >= nextKeyData.t-this.offsetTime){
                     perc = 1;
@@ -55,92 +54,60 @@ var ShapePropertyFactory = (function(){
         }
         jLen = previousValue._length;
         kLen = keyPropS.i[0].length;
-        var hasModified = false;
-        var vertexValue;
+        caching.lastIndex = iterationIndex;
+
         for(j=0;j<jLen;j+=1){
             for(k=0;k<kLen;k+=1){
-                if(isHold){
-                    vertexValue = keyPropS.i[j][k];
-                    if(previousValue.i[j][k] !== vertexValue){
-                        previousValue.i[j][k] = vertexValue;
-                        if(isCurrentRender) {
-                            this.pv.i[j][k] = vertexValue;
-                        }
-                        hasModified = true;
+                vertexValue = isHold ? keyPropS.i[j][k] :  keyPropS.i[j][k]+(keyPropE.i[j][k]-keyPropS.i[j][k])*perc;
+                if(previousValue.i[j][k] !== vertexValue){
+                    previousValue.i[j][k] = vertexValue;
+                    if(isCurrentRender) {
+                        this.pv.i[j][k] = vertexValue;
                     }
-                    vertexValue = keyPropS.o[j][k];
-                    if(previousValue.o[j][k] !== vertexValue){
-                        previousValue.o[j][k] = vertexValue;
-                        if(isCurrentRender) {
-                            this.pv.o[j][k] = vertexValue;
-                        }
-                        hasModified = true;
+                    hasModified = true;
+                }
+                vertexValue = isHold ? keyPropS.o[j][k] :  keyPropS.o[j][k]+(keyPropE.o[j][k]-keyPropS.o[j][k])*perc;
+                if(previousValue.o[j][k] !== vertexValue){
+                    previousValue.o[j][k] = vertexValue;
+                    if(isCurrentRender) {
+                        this.pv.o[j][k] = vertexValue;
                     }
-                    vertexValue = keyPropS.v[j][k];
-                    if(previousValue.v[j][k] !== vertexValue){
-                        previousValue.v[j][k] = vertexValue;
-                        if(isCurrentRender) {
-                            this.pv.v[j][k] = vertexValue;
-                        }
-                        hasModified = true;
+                    hasModified = true;
+                }
+                vertexValue = isHold ? keyPropS.v[j][k] :  keyPropS.v[j][k]+(keyPropE.v[j][k]-keyPropS.v[j][k])*perc;
+                if(previousValue.v[j][k] !== vertexValue){
+                    previousValue.v[j][k] = vertexValue;
+                    if(isCurrentRender) {
+                        this.pv.v[j][k] = vertexValue;
                     }
-                }else{
-                    vertexValue = keyPropS.i[j][k]+(keyPropE.i[j][k]-keyPropS.i[j][k])*perc;
-                    if(previousValue.i[j][k] !== vertexValue){
-                        previousValue.i[j][k] = vertexValue;
-                        if(isCurrentRender) {
-                            this.pv.i[j][k] = vertexValue;
-                        }
-                        hasModified = true;
-                    }
-                    vertexValue = keyPropS.o[j][k]+(keyPropE.o[j][k]-keyPropS.o[j][k])*perc;
-                    if(previousValue.o[j][k] !== vertexValue){
-                        previousValue.o[j][k] = vertexValue;
-                        if(isCurrentRender) {
-                            this.pv.o[j][k] = vertexValue;
-                        }
-                        hasModified = true;
-                    }
-                    vertexValue = keyPropS.v[j][k]+(keyPropE.v[j][k]-keyPropS.v[j][k])*perc;
-                    if(previousValue.v[j][k] !== vertexValue){
-                        previousValue.v[j][k] = vertexValue;
-                        if(isCurrentRender) {
-                            this.pv.v[j][k] = vertexValue;
-                        }
-                        hasModified = true;
-                    }
+                    hasModified = true;
                 }
             }
         }
-        if(hasModified) {
-            previousValue.c = keyPropS.c;
-        }
-        return {
-            iterationIndex: iterationIndex,
-            hasModified: hasModified
-        }
+
+        return hasModified;
     }
 
     function interpolateShapeCurrentTime(){
         if(this.elem.globalData.frameId === this.frameId){
             return;
         }
-        this.mdf = false;
+        this._mdf = false;
         var frameNum = this.comp.renderedFrame - this.offsetTime;
         var initTime = this.keyframes[0].t - this.offsetTime;
         var endTime = this.keyframes[this.keyframes.length - 1].t - this.offsetTime;
-        if(!(this.lastFrame !== initFrame && ((this.lastFrame < initTime && frameNum < initTime) || (this.lastFrame > endTime && frameNum > endTime)))){
+        var lastFrame = this._caching.lastFrame;
+        if(!(lastFrame !== initFrame && ((lastFrame < initTime && frameNum < initTime) || (lastFrame > endTime && frameNum > endTime)))){
             ////
-            var i = this.lastFrame < frameNum ? this._lastIndex : 0;
-            var renderResult = this.interpolateShape(frameNum, i, this.v, true);
+            this._caching.lastIndex = lastFrame < frameNum ? this._caching.lastIndex : 0;
+            var hasModified = this.interpolateShape(frameNum, this.v, true, this._caching);
             ////
-            this._lastIndex = renderResult.iterationIndex;
-            this.mdf = renderResult.hasModified;
-            if(renderResult.hasModified) {
+            this._mdf = hasModified;
+            if(hasModified) {
                 this.paths = this.localShapeCollection;
             }
         }
-        this.lastFrame = frameNum;
+        this._caching.lastFrame = frameNum;
         this.frameId = this.elem.globalData.frameId;
     }
 
@@ -151,15 +118,15 @@ var ShapePropertyFactory = (function(){
     function resetShape(){
         this.paths = this.localShapeCollection;
         if(!this.k){
-            this.mdf = false;
+            this._mdf = false;
         }
     }
 
     function ShapeProperty(elem, data, type){
-        this.__shapeObject = 1;
+        this.propType = 'shape';
         this.comp = elem.comp;
         this.k = false;
-        this.mdf = false;
+        this._mdf = false;
         var pathData = type === 3 ? data.pt.k : data.ks.k;
         this.v = shape_pool.clone(pathData);
         this.pv = shape_pool.clone(this.v);
@@ -172,17 +139,16 @@ var ShapePropertyFactory = (function(){
     ShapeProperty.prototype.getValue = getShapeValue;
 
     function KeyframedShapeProperty(elem,data,type){
-        this.__shapeObject = 1;
+        this.propType = 'shape';
         this.comp = elem.comp;
         this.elem = elem;
         this.offsetTime = elem.data.st;
-        this._lastIndex = 0;
         this.keyframes = type === 3 ? data.pt.k : data.ks.k;
         this.k = true;
         this.kf = true;
         var i, len = this.keyframes[0].s[0].i.length;
         var jLen = this.keyframes[0].s[0].i[0].length;
-        this.v = shape_pool.newShape();
+        this.v = shape_pool.newElement();
         this.v.setPathData(this.keyframes[0].s[0].c, len);
         this.pv = shape_pool.clone(this.v);
         this.localShapeCollection = shapeCollection_pool.newShapeCollection();
@@ -190,6 +156,7 @@ var ShapePropertyFactory = (function(){
         this.paths.addShape(this.v);
         this.lastFrame = initFrame;
         this.reset = resetShape;
+        this._caching = {lastFrame: initFrame, lastIndex: 0};
     }
     KeyframedShapeProperty.prototype.getValue = interpolateShapeCurrentTime;
     KeyframedShapeProperty.prototype.interpolateShape = interpolateShape;
@@ -200,56 +167,33 @@ var ShapePropertyFactory = (function(){
 
         function convertEllToPath(){
             var p0 = this.p.v[0], p1 = this.p.v[1], s0 = this.s.v[0]/2, s1 = this.s.v[1]/2;
+            var _cw = this.d !== 3;
+            var _v = this.v;
             if(this.d !== 3){
-                this.v.v[0][0] = p0;
-                this.v.v[0][1] = p1-s1;
-                this.v.v[1][0] = p0 + s0;
-                this.v.v[1][1] = p1;
-                this.v.v[2][0] = p0;
-                this.v.v[2][1] = p1+s1;
-                this.v.v[3][0] = p0 - s0;
-                this.v.v[3][1] = p1;
-                this.v.i[0][0] = p0 - s0*cPoint;
-                this.v.i[0][1] = p1 - s1;
-                this.v.i[1][0] = p0 + s0;
-                this.v.i[1][1] = p1 - s1*cPoint;
-                this.v.i[2][0] = p0 + s0*cPoint;
-                this.v.i[2][1] = p1 + s1;
-                this.v.i[3][0] = p0 - s0;
-                this.v.i[3][1] = p1 + s1*cPoint;
-                this.v.o[0][0] = p0 + s0*cPoint;
-                this.v.o[0][1] = p1 - s1;
-                this.v.o[1][0] = p0 + s0;
-                this.v.o[1][1] = p1 + s1*cPoint;
-                this.v.o[2][0] = p0 - s0*cPoint;
-                this.v.o[2][1] = p1 + s1;
-                this.v.o[3][0] = p0 - s0;
-                this.v.o[3][1] = p1 - s1*cPoint;
-            }else{
-                this.v.v[0][0] = p0;
-                this.v.v[0][1] = p1-s1;
-                this.v.v[1][0] = p0 - s0;
-                this.v.v[1][1] = p1;
-                this.v.v[2][0] = p0;
-                this.v.v[2][1] = p1+s1;
-                this.v.v[3][0] = p0 + s0;
-                this.v.v[3][1] = p1;
-                this.v.i[0][0] = p0 + s0*cPoint;
-                this.v.i[0][1] = p1 - s1;
-                this.v.i[1][0] = p0 - s0;
-                this.v.i[1][1] = p1 - s1*cPoint;
-                this.v.i[2][0] = p0 - s0*cPoint;
-                this.v.i[2][1] = p1 + s1;
-                this.v.i[3][0] = p0 + s0;
-                this.v.i[3][1] = p1 + s1*cPoint;
-                this.v.o[0][0] = p0 - s0*cPoint;
-                this.v.o[0][1] = p1 - s1;
-                this.v.o[1][0] = p0 - s0;
-                this.v.o[1][1] = p1 + s1*cPoint;
-                this.v.o[2][0] = p0 + s0*cPoint;
-                this.v.o[2][1] = p1 + s1;
-                this.v.o[3][0] = p0 + s0;
-                this.v.o[3][1] = p1 - s1*cPoint;
+                _v.v[0][0] = p0;
+                _v.v[0][1] = p1 - s1;
+                _v.v[1][0] = _cw ? p0 + s0 : p0 - s0;
+                _v.v[1][1] = p1;
+                _v.v[2][0] = p0;
+                _v.v[2][1] = p1 + s1;
+                _v.v[3][0] = _cw ? p0 - s0 : p0 + s0;
+                _v.v[3][1] = p1;
+                _v.i[0][0] = _cw ? p0 - s0 * cPoint : p0 + s0 * cPoint;
+                _v.i[0][1] = p1 - s1;
+                _v.i[1][0] = _cw ? p0 + s0 : p0 - s0;
+                _v.i[1][1] = p1 - s1 * cPoint;
+                _v.i[2][0] = _cw ? p0 + s0 * cPoint : p0 - s0 * cPoint;
+                _v.i[2][1] = p1 + s1;
+                _v.i[3][0] = _cw ? p0 - s0 : p0 + s0;
+                _v.i[3][1] = p1 + s1 * cPoint;
+                _v.o[0][0] = _cw ? p0 + s0 * cPoint : p0 - s0 * cPoint;
+                _v.o[0][1] = p1 - s1;
+                _v.o[1][0] = _cw ? p0 + s0 : p0 - s0;
+                _v.o[1][1] = p1 + s1 * cPoint;
+                _v.o[2][0] = _cw ? p0 - s0 * cPoint : p0 + s0 * cPoint;
+                _v.o[2][1] = p1 + s1;
+                _v.o[3][0] = _cw ? p0 - s0 : p0 + s0;
+                _v.o[3][1] = p1 - s1 * cPoint;
             }
         }
 
@@ -258,28 +202,28 @@ var ShapePropertyFactory = (function(){
             if(this.elem.globalData.frameId === this.frameId){
                 return;
             }
-            this.mdf = false;
+            this._mdf = false;
             this.frameId = this.elem.globalData.frameId;
 
             for(i=0;i<len;i+=1){
                 this.dynamicProperties[i].getValue(frameNum);
-                if(this.dynamicProperties[i].mdf){
-                    this.mdf = true;
+                if(this.dynamicProperties[i]._mdf){
+                    this._mdf = true;
                 }
             }
-            if(this.mdf){
+            if(this._mdf){
                 this.convertEllToPath();
             }
         }
 
         return function EllShapeProperty(elem,data) {
             /*this.v = {
-                v: Array.apply(null,{length:4}),
-                i: Array.apply(null,{length:4}),
-                o: Array.apply(null,{length:4}),
+                v: createSizedArray(4),
+                i: createSizedArray(4),
+                o: createSizedArray(4),
                 c: true
             };*/
-            this.v = shape_pool.newShape();
+            this.v = shape_pool.newElement();
             this.v.setPathData(true, 4);
             this.localShapeCollection = shapeCollection_pool.newShapeCollection();
             this.paths = this.localShapeCollection;
@@ -289,7 +233,7 @@ var ShapePropertyFactory = (function(){
             this.elem = elem;
             this.comp = elem.comp;
             this.frameId = -1;
-            this.mdf = false;
+            this._mdf = false;
             this.getValue = processKeys;
             this.convertEllToPath = convertEllToPath;
             this.reset = resetShape;
@@ -300,7 +244,7 @@ var ShapePropertyFactory = (function(){
             }else{
                 this.convertEllToPath();
             }
-        }
+        };
     }());
 
     var StarShapeProperty = (function() {
@@ -377,17 +321,17 @@ var ShapePropertyFactory = (function(){
             if(this.elem.globalData.frameId === this.frameId){
                 return;
             }
-            this.mdf = false;
+            this._mdf = false;
             this.frameId = this.elem.globalData.frameId;
             var i, len = this.dynamicProperties.length;
 
             for(i=0;i<len;i+=1){
                 this.dynamicProperties[i].getValue();
-                if(this.dynamicProperties[i].mdf){
-                    this.mdf = true;
+                if(this.dynamicProperties[i]._mdf){
+                    this._mdf = true;
                 }
             }
-            if(this.mdf){
+            if(this._mdf){
                 this.convertToPath();
             }
         }
@@ -399,7 +343,7 @@ var ShapePropertyFactory = (function(){
                 o: [],
                 c: true
             };*/
-            this.v = shape_pool.newShape();
+            this.v = shape_pool.newElement();
             this.v.setPathData(true, 0);
             this.elem = elem;
             this.comp = elem.comp;
@@ -407,7 +351,7 @@ var ShapePropertyFactory = (function(){
             this.frameId = -1;
             this.d = data.d;
             this.dynamicProperties = [];
-            this.mdf = false;
+            this._mdf = false;
             this.getValue = processKeys;
             this.reset = resetShape;
             if(data.sy === 1){
@@ -430,7 +374,7 @@ var ShapePropertyFactory = (function(){
             }else{
                 this.convertToPath();
             }
-        }
+        };
     }());
 
     var RectShapeProperty = (function() {
@@ -438,17 +382,17 @@ var ShapePropertyFactory = (function(){
             if(this.elem.globalData.frameId === this.frameId){
                 return;
             }
-            this.mdf = false;
+            this._mdf = false;
             this.frameId = this.elem.globalData.frameId;
             var i, len = this.dynamicProperties.length;
 
             for(i=0;i<len;i+=1){
                 this.dynamicProperties[i].getValue(frameNum);
-                if(this.dynamicProperties[i].mdf){
-                    this.mdf = true;
+                if(this.dynamicProperties[i]._mdf){
+                    this._mdf = true;
                 }
             }
-            if(this.mdf){
+            if(this._mdf){
                 this.convertRectToPath();
             }
 
@@ -494,7 +438,7 @@ var ShapePropertyFactory = (function(){
         }
 
         return function RectShapeProperty(elem,data) {
-            this.v = shape_pool.newShape();
+            this.v = shape_pool.newElement();
             this.v.c = true;
             this.localShapeCollection = shapeCollection_pool.newShapeCollection();
             this.localShapeCollection.addShape(this.v);
@@ -504,7 +448,7 @@ var ShapePropertyFactory = (function(){
             this.frameId = -1;
             this.d = data.d;
             this.dynamicProperties = [];
-            this.mdf = false;
+            this._mdf = false;
             this.getValue = processKeys;
             this.convertRectToPath = convertRectToPath;
             this.reset = resetShape;
@@ -516,7 +460,7 @@ var ShapePropertyFactory = (function(){
             }else{
                 this.convertRectToPath();
             }
-        }
+        };
     }());
 
     function getShapeProp(elem,data,type, arr){

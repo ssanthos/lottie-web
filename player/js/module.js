@@ -10,6 +10,7 @@
         root.bodymovin = root.lottie;
     }
 }((window || {}), function(window) {
+    "use strict";
     /*<%= contents %>*/
     var lottiejs = {};
 
@@ -38,10 +39,6 @@
 
     function stop(animation) {
         animationManager.stop(animation);
-    }
-
-    function moveFrame(value) {
-        animationManager.moveFrame(value);
     }
 
     function searchAnimations() {
@@ -133,7 +130,6 @@
     lottiejs.setSpeed = setSpeed;
     lottiejs.setDirection = setDirection;
     lottiejs.stop = stop;
-    lottiejs.moveFrame = moveFrame;
     lottiejs.searchAnimations = searchAnimations;
     lottiejs.registerAnimation = registerAnimation;
     lottiejs.loadAnimation = loadAnimation;
